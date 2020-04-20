@@ -4,6 +4,34 @@ addEventListener('fetch', event => {
    */
   event.respondWith(handleRequest(event.request))
 })
+// Changes the incoming title
+class TitleHandler {
+  element(element) {
+    element.prepend("Webpage Variant  ");
+  }
+}
+
+// Changes the incoming header title
+class HeadingHandler {
+  element(element) {
+    element.prepend("Chika's version of  ");
+  }
+}
+
+// Changes the incoming description
+class DescriptionHandler {
+  element(element) {
+    element.setInnerContent("Cloudflare, thank you for the opportunity and care you've shown students during this difficult time");
+  }
+}
+
+// Changes the incoming call to my LinkedIn link
+class URLHandler {
+  element(element) {
+    element.setInnerContent("Click to visit my LinkedIn!");
+    element.setAttribute("href", "www.linkedin.com/in/chika-jinanwa-736b62175");
+  }
+}
 
 async function handleRequest(request) {
   /**
@@ -37,10 +65,20 @@ async function handleRequest(request) {
     console.log(urlJson); //sanity check to verify the array created
     let selectedUrl =randomUrl(urlJson);//randomly selected URL variant 
     b = await fetch(selectedUrl) //fetch request to randomly selected URL variant
+    //console.log("This is the chosen variant",randomUrl(urlJson))
+    // pass response to HTML Rewriter API to customize page
+    const rewriter = new HTMLRewriter()
+    .on('title', new TitleHandler())
+    .on('h1#title', new HeadingHandler())
+    .on('p#description', new DescriptionHandler())
+    .on('a#url', new URLHandler());
+
     userResp = await b.text() //parse response as text
     console.log(userResp);
+    //transformResponse = rewriter.transform(userResp)--Keeps throwing an error. I couldn't figure out why :(
     const websiteVariant = `websiteVariant=${selectedUrl};expires=Fri, 31 Dec 9999 23:59:59 GMT;Path='/';` //compose cookie
-    return new Response(userResp, {headers:{'Content-Type':'text/html','Set-Cookie':websiteVariant}}) //sets cookie
+    
+    return new Response(userResp, {headers:{'Content-Type':'text/html','Set-Cookie':websiteVariant}}) //sets cookie: Reference: https://developers.cloudflare.com/workers/archive/recipes/setting-a-cookie/
   }else{
     b = await fetch(savedVariant);
     userResp = await b.text();
@@ -56,4 +94,3 @@ function randomUrl(urlJson) {
    */
   return urlJson[Math.floor(Math.random()*urlJson.length)];
 }
-//console.log("This is the chosen variant",randomUrl(urlJson))
